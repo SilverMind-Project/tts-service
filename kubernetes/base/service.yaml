@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tts-svc
+  labels:
+    app: tts-service
+spec:
+  type: ClusterIP
+  selector:
+    app: tts-service
+  ports:
+  - name: http
+    port: 8200
+    targetPort: 8200
+    protocol: TCP

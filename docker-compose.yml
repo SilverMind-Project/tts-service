@@ -1,0 +1,72 @@
+# TTS Service — Docker Compose
+#
+# GPU-accelerated text-to-speech microservice with optional Wyoming proxy
+# for Home Assistant voice pipeline integration.
+#
+# Usage:
+#   cp .env.example .env   # optional, defaults work out of the box
+#   docker compose up -d
+#
+# To also start the Wyoming proxy for Home Assistant:
+#   docker compose --profile wyoming up -d
+#
+# Requires: NVIDIA Container Toolkit (nvidia-ctk)
+#
+# First start downloads models (~6 GB for svara + SNAC). Subsequent
+# starts are fast if /app/data is persisted (models cached in
+# /app/data/hf_cache).
+
+services:
+  tts:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tts-service
+    restart: unless-stopped
+    ports:
+      - "8200:8200"
+    volumes:
+      - tts-data:/app/data
+    env_file:
+      - .env
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8200/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s  # model download + load can take time on first run
+
+  # Wyoming OpenAI proxy — bridges the TTS service to Home Assistant's
+  # voice pipeline via the Wyoming protocol.
+  #
+  # Enable with: docker compose --profile wyoming up -d
+  #
+  # Once running, add it in Home Assistant:
+  #   Settings → Devices & Services → Add Integration → Wyoming Protocol
+  #   Host: <this-machine-ip>  Port: 10300
+  wyoming-openai:
+    image: ghcr.io/roryeckel/wyoming_openai:latest
+    container_name: wyoming-openai
+    restart: unless-stopped
+    profiles:
+      - wyoming
+    ports:
+      - "10300:10300"
+    environment:
+      - WYOMING_TTS_OPENAI_URL=${WYOMING_TTS_OPENAI_URL:-http://tts:8200/v1}
+      - WYOMING_TTS_MODELS=${WYOMING_TTS_MODELS:-svara,parler,fish_speech,seamless,melo,edge_tts}
+      - WYOMING_TTS_VOICES=${WYOMING_TTS_VOICES:-speaker_0,speaker_1,female_calm,male_clear,default}
+    depends_on:
+      tts:
+        condition: service_healthy
+
+volumes:
+  tts-data:
+    driver: local
