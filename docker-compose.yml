@@ -61,7 +61,7 @@ services:
       - "10300:10300"
     environment:
       - WYOMING_TTS_OPENAI_URL=${WYOMING_TTS_OPENAI_URL:-http://tts:8200/v1}
-      - WYOMING_TTS_MODELS=${WYOMING_TTS_MODELS:-svara,parler,fish_speech,seamless,melo,edge_tts}
+      - WYOMING_TTS_MODELS=${WYOMING_TTS_MODELS:-svara,parler,fish_speech,seamless,edge_tts}
       - WYOMING_TTS_VOICES=${WYOMING_TTS_VOICES:-speaker_0,speaker_1,female_calm,male_clear,default}
     depends_on:
       tts:

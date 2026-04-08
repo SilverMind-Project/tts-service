@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import queue
 import re
 from collections.abc import AsyncIterator
 
@@ -137,6 +138,28 @@ _PROMPT_SEPARATOR_TOKEN_ID = 128009
 _AUDIO_TOKEN_OFFSET = 128266
 _CODEBOOK_SIZE = 4096
 _SNAC_SAMPLE_RATE = 24000
+
+
+class _TokenQueueStreamer:
+    """Custom streamer that puts generated token IDs onto a queue.
+
+    Used with ``model.generate(streamer=...)`` running in a background thread.
+    The main async loop consumes tokens from the queue to decode SNAC frames
+    incrementally.
+    """
+
+    def __init__(self, token_queue: queue.Queue) -> None:
+        self._queue = token_queue
+
+    def put(self, value: torch.Tensor) -> None:
+        """Called by generate() for each batch of new tokens."""
+        flat = value.flatten().tolist()
+        for token_id in flat:
+            self._queue.put(token_id)
+
+    def end(self) -> None:
+        """Called when generation is complete."""
+        self._queue.put(None)
 
 
 class SvaraEngine(TTSEngine):
@@ -524,6 +547,75 @@ class SvaraEngine(TTSEngine):
         indices = np.linspace(0, len(audio) - 1, new_len)
         return np.interp(indices, np.arange(len(audio)), audio).astype(np.float32)
 
+    # ------------------------------------------------------------------
+    # Streaming support
+    # ------------------------------------------------------------------
+
+    def _decode_frame_batch(self, code_list: list[int]) -> bytes:
+        """Decode multiple SNAC frames at once and return PCM int16 bytes.
+
+        Batching frames gives SNAC's convolutional decoder enough temporal
+        context to produce clean audio.  Unlike ``_decode_code_list`` which
+        normalizes to peak (suitable for complete utterances), this method
+        clips to [-1, 1] to avoid per-batch volume pumping during streaming.
+        """
+        layer_0: list[int] = []
+        layer_1: list[int] = []
+        layer_2: list[int] = []
+
+        frame_count = len(code_list) // 7
+        for i in range(frame_count):
+            base = i * 7
+            layer_0.append(code_list[base])
+            layer_1.append(code_list[base + 1] - _CODEBOOK_SIZE)
+            layer_2.append(code_list[base + 2] - 2 * _CODEBOOK_SIZE)
+            layer_2.append(code_list[base + 3] - 3 * _CODEBOOK_SIZE)
+            layer_1.append(code_list[base + 4] - 4 * _CODEBOOK_SIZE)
+            layer_2.append(code_list[base + 5] - 5 * _CODEBOOK_SIZE)
+            layer_2.append(code_list[base + 6] - 6 * _CODEBOOK_SIZE)
+
+        codes = [
+            torch.tensor(layer_0, device=self._device, dtype=torch.int32).unsqueeze(0),
+            torch.tensor(layer_1, device=self._device, dtype=torch.int32).unsqueeze(0),
+            torch.tensor(layer_2, device=self._device, dtype=torch.int32).unsqueeze(0),
+        ]
+
+        with torch.inference_mode():
+            waveform = self._snac.decode(codes)
+
+        audio = waveform.detach().squeeze().cpu().numpy().astype(np.float32)
+        np.clip(audio, -1.0, 1.0, out=audio)
+        return (audio * 32767).astype(np.int16).tobytes()
+
+    def _generate_with_streamer(
+        self,
+        input_ids: torch.Tensor,
+        attention_mask: torch.Tensor,
+        token_queue: queue.Queue,
+    ) -> None:
+        """Run model.generate() with a token-queue streamer (called in executor thread)."""
+        streamer = _TokenQueueStreamer(token_queue)
+
+        max_tokens = config.get("engines.svara.max_tokens", 4096)
+        temperature = config.get("engines.svara.temperature", 0.6)
+        top_p = config.get("engines.svara.top_p", 0.95)
+        repetition_penalty = config.get("engines.svara.repetition_penalty", 1.1)
+
+        with torch.inference_mode():
+            self._model.generate(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+                max_new_tokens=int(max_tokens),
+                do_sample=True,
+                temperature=float(temperature),
+                top_p=float(top_p),
+                repetition_penalty=float(repetition_penalty),
+                num_return_sequences=1,
+                eos_token_id=_AUDIO_EOS_TOKEN_ID,
+                pad_token_id=self._tokenizer.pad_token_id,
+                streamer=streamer,
+            )
+
     async def synthesize_stream(
         self,
         text: str,
@@ -535,18 +627,66 @@ class SvaraEngine(TTSEngine):
         reference_sr: int = 24000,
         chunk_size: int = 4096,
     ) -> AsyncIterator[bytes]:
-        """Stream audio chunks.
+        """True token-level streaming via batched SNAC frame decode.
 
-        This uses full generation followed by PCM chunking for reliability.
+        Every 7 generated tokens form one SNAC frame (~10ms of audio at 24kHz).
+        Frames are accumulated into batches of ``stream_frame_buffer`` frames
+        (default 21 = ~210ms) and decoded together so that SNAC's convolutional
+        decoder has sufficient temporal context for clean audio.
         """
-        result = await self.synthesize(
-            text,
-            voice=voice,
-            language=language,
-            speed=speed,
-            reference_audio=reference_audio,
-            reference_sr=reference_sr,
+        if reference_audio is not None:
+            logger.warning("Svara base model does not support reference-audio cloning; ignoring")
+
+        input_ids, attention_mask, _prompt = self._prepare_inputs(text, voice, language)
+
+        token_queue: queue.Queue = queue.Queue()
+        loop = asyncio.get_event_loop()
+
+        # Launch generation in background thread
+        gen_future = loop.run_in_executor(
+            None,
+            self._generate_with_streamer,
+            input_ids,
+            attention_mask,
+            token_queue,
         )
-        pcm = (result.audio * 32767).astype(np.int16).tobytes()
-        for offset in range(0, len(pcm), chunk_size):
-            yield pcm[offset : offset + chunk_size]
+
+        batch_frames = int(config.get("engines.svara.stream_frame_buffer", 21))
+        batch_code_count = batch_frames * 7  # number of codes per decode batch
+        codes: list[int] = []
+
+        try:
+            while True:
+                # Await next token without blocking the event loop
+                token = await loop.run_in_executor(None, token_queue.get)
+
+                if token is None or token == _AUDIO_EOS_TOKEN_ID:
+                    break
+
+                code = token - _AUDIO_TOKEN_OFFSET
+                if code < 0:
+                    continue  # skip non-audio tokens (prompt, special tokens)
+
+                codes.append(code)
+
+                if len(codes) >= batch_code_count:
+                    try:
+                        pcm = self._decode_frame_batch(codes[:batch_code_count])
+                        codes = codes[batch_code_count:]
+                        yield pcm
+                    except Exception:
+                        logger.warning("Skipping invalid SNAC batch during streaming")
+                        codes.clear()
+
+            # Flush remaining complete frames
+            remainder = len(codes) - (len(codes) % 7)
+            if remainder > 0:
+                try:
+                    pcm = self._decode_frame_batch(codes[:remainder])
+                    yield pcm
+                except Exception:
+                    logger.warning("Skipping invalid final SNAC batch")
+
+        finally:
+            # Ensure the generation thread completes
+            await gen_future

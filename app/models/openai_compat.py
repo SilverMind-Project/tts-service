@@ -10,7 +10,7 @@ class SpeechRequest(BaseModel):
 
     model: str = Field(
         default="svara",
-        description="TTS engine to use: svara, parler, melo",
+        description="TTS engine to use: svara, parler, fish_speech, seamless, edge_tts",
     )
     input: str = Field(
         ...,
@@ -22,7 +22,8 @@ class SpeechRequest(BaseModel):
         description=(
             "Voice identifier. For svara: speaker tag (e.g. 'speaker_0'). "
             "For parler: voice description or preset name. "
-            "For melo: language-accent code (e.g. 'EN-IN')."
+            "For fish_speech: 'default' or custom voice sample ID. "
+            "For edge_tts: Edge TTS voice name (e.g. 'en-IN-NeerjaExpressiveNeural')."
         ),
     )
     response_format: str = Field(

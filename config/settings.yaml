@@ -8,7 +8,7 @@ server:
 
 # ── Engines ──────────────────────────────────────────────────────────────
 # List of engines to load at startup. Order matters for fallback.
-# Supported: svara, parler, melo, fish_speech, seamless, edge_tts
+# Supported: svara, parler, fish_speech, seamless, edge_tts
 engines:
   enabled:
     - svara
@@ -23,16 +23,13 @@ engines:
     temperature: 0.6
     top_p: 0.95
     repetition_penalty: 1.1
+    stream_frame_buffer: 21      # SNAC frames per decode batch (~210ms); larger = better quality, more latency
 
   parler:
     model_id: "ai4bharat/indic-parler-tts"
     device: "${CUDA_DEVICE:cuda}"
     dtype: "float16"
     max_tokens: 2048
-
-  melo:
-    device: "auto"               # auto = GPU if available, else CPU
-    default_voice: "EN-IN"
 
   fish_speech:
     model_id: "fishaudio/s2-pro"

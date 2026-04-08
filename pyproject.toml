@@ -26,10 +26,6 @@ svara = [
 parler = [
     "parler-tts>=0.2.3",
 ]
-# Lightweight fallback — MeloTTS (English only, runs on CPU)
-melo = [
-    "MeloTTS>=0.1",
-]
 # Fish Speech S2-Pro (80+ languages, voice cloning)
 fish_speech = [
     "fish-speech @ git+https://github.com/fishaudio/fish-speech.git",
@@ -45,10 +41,8 @@ edge_tts = [
 ]
 # Default build-compatible engine bundle
 all = [
-    # Keep MeloTTS opt-in for now: the current PyPI release ships a broken
-    # sdist, which makes clean builds fail when `.[all]` is installed.
-    # Keep Fish Speech opt-in for now: its protobuf constraint currently
-    # conflicts with parler-tts, so the resolver cannot satisfy both.
+    # Fish Speech is opt-in: its protobuf constraint currently conflicts
+    # with parler-tts, so the resolver cannot satisfy both.
     "tts-service[svara,parler,seamless,edge_tts]",
 ]
 cpu = [
@@ -67,6 +61,10 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
 
 [build-system]
 requires = ["setuptools>=68"]

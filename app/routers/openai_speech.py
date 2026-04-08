@@ -61,7 +61,7 @@ async def create_speech(body: SpeechRequest, request: Request):
             _stream(),
             media_type="audio/pcm",
             headers={
-                "X-Sample-Rate": "24000",
+                "X-Sample-Rate": str(engine.voices()[0].sample_rate if engine.voices() else 24000),
                 "X-Sample-Width": "16",
                 "X-Channels": "1",
             },

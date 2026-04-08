@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 _ENGINE_CLASSES: dict[str, str] = {
     "svara": "app.services.engine_svara:SvaraEngine",
     "parler": "app.services.engine_parler:ParlerEngine",
-    "melo": "app.services.engine_melo:MeloEngine",
     "fish_speech": "app.services.engine_fish_speech:FishSpeechEngine",
     "seamless": "app.services.engine_seamless:SeamlessEngine",
     "edge_tts": "app.services.engine_edge_tts:EdgeTTSEngine",

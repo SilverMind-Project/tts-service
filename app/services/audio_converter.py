@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import io
-import struct
 import logging
 
 import numpy as np
@@ -26,26 +25,11 @@ class AudioConverter:
 
     @staticmethod
     def to_wav(audio: np.ndarray, sample_rate: int) -> bytes:
-        """Encode as 16-bit PCM WAV."""
-        pcm = (audio * 32767).clip(-32768, 32767).astype(np.int16)
+        """Encode as 16-bit PCM WAV using soundfile."""
+        import soundfile as sf
+
         buf = io.BytesIO()
-        num_samples = len(pcm)
-        data_size = num_samples * 2  # 16-bit = 2 bytes per sample
-        # WAV header (44 bytes)
-        buf.write(b"RIFF")
-        buf.write(struct.pack("<I", 36 + data_size))
-        buf.write(b"WAVE")
-        buf.write(b"fmt ")
-        buf.write(struct.pack("<I", 16))           # chunk size
-        buf.write(struct.pack("<H", 1))            # PCM format
-        buf.write(struct.pack("<H", 1))            # mono
-        buf.write(struct.pack("<I", sample_rate))
-        buf.write(struct.pack("<I", sample_rate * 2))  # byte rate
-        buf.write(struct.pack("<H", 2))            # block align
-        buf.write(struct.pack("<H", 16))           # bits per sample
-        buf.write(b"data")
-        buf.write(struct.pack("<I", data_size))
-        buf.write(pcm.tobytes())
+        sf.write(buf, audio, sample_rate, format="WAV", subtype="PCM_16")
         return buf.getvalue()
 
     @staticmethod
