@@ -10,6 +10,6 @@ spec:
     app: tts-service
   ports:
   - name: http
-    port: 8200
-    targetPort: 8200
+    port: 8600
+    targetPort: 8600
     protocol: TCP

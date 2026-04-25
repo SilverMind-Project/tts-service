@@ -83,7 +83,7 @@ Two streaming strategies are implemented:
 Home Assistant uses the **Wyoming protocol** for voice pipelines. A [wyoming_openai](https://github.com/roryeckel/wyoming_openai) sidecar bridges the OpenAI-compatible API to Wyoming:
 
 ```text
-Home Assistant (Wyoming) <--> wyoming-openai (:10300) <--> tts-service (:8200) /v1/audio/speech
+Home Assistant (Wyoming) <--> wyoming-openai (:10300) <--> tts-service (:8600) /v1/audio/speech
 ```
 
 Start the sidecar with `docker compose --profile wyoming up -d`.
@@ -116,7 +116,7 @@ Key settings:
 
 ## Port
 
-This service runs on port **8200** (vs person-id on 8100, cognitive-companion on 8000).
+This service runs on port **8600** (vs person-id on 8600, cognitive-companion on 8000).
 
 ## Engines
 

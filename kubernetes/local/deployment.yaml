@@ -20,7 +20,7 @@ spec:
         image: localhost:32000/tts-service:latest
         imagePullPolicy: Always
         ports:
-        - containerPort: 8200
+        - containerPort: 8600
           name: http
         env:
         - name: CUDA_DEVICE
@@ -42,14 +42,14 @@ spec:
         readinessProbe:
           httpGet:
             path: /health
-            port: 8200
+            port: 8600
           initialDelaySeconds: 120
           periodSeconds: 15
           timeoutSeconds: 5
         livenessProbe:
           httpGet:
             path: /health
-            port: 8200
+            port: 8600
           initialDelaySeconds: 180
           periodSeconds: 30
           timeoutSeconds: 10

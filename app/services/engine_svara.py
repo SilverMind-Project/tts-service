@@ -199,6 +199,9 @@ class SvaraEngine(TTSEngine):
             model_id,
             torch_dtype=self._dtype,
             device_map="auto" if device == "cuda" else None,
+            max_memory={
+                0: "16GiB"
+            }
         )
         if device != "cuda":
             self._model = self._model.to(device)

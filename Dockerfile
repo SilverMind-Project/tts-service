@@ -57,10 +57,10 @@ RUN mkdir -p data/voice_samples
 
 VOLUME ["/app/data"]
 
-EXPOSE 8200
+EXPOSE 8600
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8200/health')" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8600/health')" || exit 1
 
 ENTRYPOINT ["uvicorn"]
-CMD ["app.main:app", "--host", "0.0.0.0", "--port", "8200"]
+CMD ["app.main:app", "--host", "0.0.0.0", "--port", "8600"]

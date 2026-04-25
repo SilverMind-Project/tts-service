@@ -60,7 +60,7 @@ First start downloads models (~6 GB). Subsequent starts use cached models.
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[svara,dev]"
-uvicorn app.main:app --host 0.0.0.0 --port 8200 --reload
+uvicorn app.main:app --host 0.0.0.0 --port 8600 --reload
 ```
 
 ### Running Tests
@@ -79,7 +79,7 @@ pytest tests/ -v
 Generate speech from text. Drop-in compatible with the OpenAI TTS API.
 
 ```bash
-curl -X POST http://localhost:8200/v1/audio/speech \
+curl -X POST http://localhost:8600/v1/audio/speech \
   -H "Content-Type: application/json" \
   -d '{
     "model": "svara",
@@ -106,7 +106,7 @@ curl -X POST http://localhost:8200/v1/audio/speech \
 **Streaming:**
 
 ```bash
-curl -X POST http://localhost:8200/v1/audio/speech \
+curl -X POST http://localhost:8600/v1/audio/speech \
   -H "Content-Type: application/json" \
   -d '{"model": "svara", "input": "Hello", "stream": true}' \
   --output stream.pcm
@@ -121,7 +121,7 @@ With Svara, streaming uses true token-level generation: tokens are intercepted d
 List available TTS engines.
 
 ```bash
-curl http://localhost:8200/v1/models
+curl http://localhost:8600/v1/models
 ```
 
 ### Voice Management
@@ -131,7 +131,7 @@ curl http://localhost:8200/v1/models
 List all voices (built-in + custom samples).
 
 ```bash
-curl http://localhost:8200/api/v1/voices
+curl http://localhost:8600/api/v1/voices
 ```
 
 #### `POST /api/v1/voices/upload`
@@ -139,7 +139,7 @@ curl http://localhost:8200/api/v1/voices
 Upload a voice reference sample for voice cloning.
 
 ```bash
-curl -X POST http://localhost:8200/api/v1/voices/upload \
+curl -X POST http://localhost:8600/api/v1/voices/upload \
   -F "voice_id=grandma" \
   -F "name=Grandma's Voice" \
   -F "language=ta" \
@@ -156,7 +156,7 @@ Delete a custom voice sample.
 #### `GET /health`
 
 ```bash
-curl http://localhost:8200/health
+curl http://localhost:8600/health
 ```
 
 Returns GPU status, loaded engines, and voice sample count.
@@ -177,7 +177,7 @@ Engines that support voice cloning (`fish_speech`) can use reference audio sampl
 **Via API:**
 
 ```bash
-curl -X POST http://localhost:8200/api/v1/voices/upload \
+curl -X POST http://localhost:8600/api/v1/voices/upload \
   -F "voice_id=grandma" \
   -F "name=Grandma" \
   -F "language=ta" \
@@ -214,7 +214,7 @@ data/voice_samples/
 Once uploaded, use the `voice_id` in synthesis requests:
 
 ```bash
-curl -X POST http://localhost:8200/v1/audio/speech \
+curl -X POST http://localhost:8600/v1/audio/speech \
   -H "Content-Type: application/json" \
   -d '{"model": "fish_speech", "input": "Hello paatti", "voice": "grandma"}' \
   --output speech.mp3
@@ -230,7 +230,7 @@ Home Assistant's voice pipeline uses the **Wyoming protocol** for STT and TTS. T
 docker compose --profile wyoming up -d
 ```
 
-This starts the `wyoming-openai` sidecar on port **10300**. It connects to the TTS service at `http://tts:8200/v1` and exposes a Wyoming server.
+This starts the `wyoming-openai` sidecar on port **10300**. It connects to the TTS service at `http://tts:8600/v1` and exposes a Wyoming server.
 
 ### Add to Home Assistant
 
@@ -246,7 +246,7 @@ The TTS engines then appear as voice options in any Home Assistant voice assista
 The Wyoming sidecar is configured via environment variables in `.env`:
 
 ```bash
-WYOMING_TTS_OPENAI_URL=http://tts:8200/v1
+WYOMING_TTS_OPENAI_URL=http://tts:8600/v1
 WYOMING_TTS_MODELS=svara,parler,fish_speech,seamless,edge_tts
 WYOMING_TTS_VOICES=speaker_0,speaker_1,female_calm,male_clear,default
 ```
@@ -313,14 +313,14 @@ Fish Speech (`fish_speech`) supports high-quality voice cloning from short refer
 
 ```bash
 # Upload a reference sample
-curl -X POST http://localhost:8200/api/v1/voices/upload \
+curl -X POST http://localhost:8600/api/v1/voices/upload \
   -F "voice_id=grandma" \
   -F "name=Grandma" \
   -F "language=ta" \
   -F "file=@grandma_sample.wav"
 
 # Use the cloned voice with Fish Speech
-curl -X POST http://localhost:8200/v1/audio/speech \
+curl -X POST http://localhost:8600/v1/audio/speech \
   -H "Content-Type: application/json" \
   -d '{"model": "fish_speech", "input": "Hello paatti", "voice": "grandma"}' \
   --output speech.mp3
@@ -333,7 +333,7 @@ Fish Speech supports 80+ languages. Pass the `language` field for best results w
 SeamlessM4T (`seamless`) uses integer speaker IDs. Available voices: `default` (speaker 0), `speaker_0`, `speaker_1`, `speaker_2`. The engine supports 36 speech output languages. Specify the `language` field with a BCP-47 code:
 
 ```bash
-curl -X POST http://localhost:8200/v1/audio/speech \
+curl -X POST http://localhost:8600/v1/audio/speech \
   -H "Content-Type: application/json" \
   -d '{"model": "seamless", "input": "வணக்கம்", "language": "ta"}' \
   --output speech.mp3
@@ -416,7 +416,7 @@ kubectl apply -f kubernetes/local/deployment.yaml
 kubectl apply -f kubernetes/base/service.yaml
 ```
 
-The service is available at `tts-svc:8200` within the cluster.
+The service is available at `tts-svc:8600` within the cluster.
 
 ## Integration with Cognitive Companion
 
@@ -424,7 +424,7 @@ The Cognitive Companion backend connects to this service via its TTS client. Con
 
 ```yaml
 tts:
-  url: "http://tts-service:8200"
+  url: "http://tts-service:8600"
   default_voice: "speaker_0"
   default_speed: 0.85
 ```
