@@ -39,7 +39,7 @@ tts-service/
 |   +-- settings.yaml                  # All runtime configuration
 +-- data/
 |   +-- voice_samples/                 # Reference audio for voice cloning
-+-- kubernetes/                        # K8s deployment manifests
++-- kubernetes/                        # K8s manifests (migrated to ../kubernetes/tts-service/)
 +-- Dockerfile                         # NVIDIA CUDA + Python 3.12
 +-- docker-compose.yml                 # Single service with GPU
 +-- pyproject.toml                     # Dependencies + pytest config
