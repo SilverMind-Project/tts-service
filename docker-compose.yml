@@ -23,6 +23,8 @@ services:
       dockerfile: Dockerfile
     container_name: tts-service
     restart: unless-stopped
+    networks:
+      - nanai
     ports:
       - "8600:8600"
     volumes:
@@ -70,3 +72,8 @@ services:
 volumes:
   tts-data:
     driver: local
+
+networks:
+  nanai:
+    name: nanai
+    external: true
