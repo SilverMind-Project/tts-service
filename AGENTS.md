@@ -295,7 +295,7 @@ When the `voice` parameter matches a preset, the stored description is used. Oth
 
 ### OpenAI-compatible endpoints
 
-**`POST /v1/audio/speech`** — Generate speech from text.
+**`POST /v1/audio/speech`**: Generate speech from text.
 
 | Field | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -309,19 +309,19 @@ When the `voice` parameter matches a preset, the stored description is used. Oth
 
 When `stream=true`, returns `audio/pcm` with headers `X-Sample-Rate`, `X-Sample-Width`, `X-Channels`. Otherwise returns the requested format with `Content-Disposition: inline; filename="speech.{format}"`.
 
-**`GET /v1/models`** — List loaded engines. Returns `ModelListResponse` with `data: [SpeechModelInfo]`.
+**`GET /v1/models`**: List loaded engines. Returns `ModelListResponse` with `data: [SpeechModelInfo]`.
 
 ### Voice management endpoints
 
-**`GET /api/v1/voices`** — List all voices. Query param `?engine=svara` to filter. Returns `VoiceListResponse`.
+**`GET /api/v1/voices`**: List all voices. Query param `?engine=svara` to filter. Returns `VoiceListResponse`.
 
-**`POST /api/v1/voices/upload`** — Upload a voice reference sample. Multipart form: `voice_id`, `name`, `language`, `description`, `file`. Max 50 MB.
+**`POST /api/v1/voices/upload`**: Upload a voice reference sample. Multipart form: `voice_id`, `name`, `language`, `description`, `file`. Max 50 MB.
 
-**`DELETE /api/v1/voices/{voice_id}`** — Delete a voice sample.
+**`DELETE /api/v1/voices/{voice_id}`**: Delete a voice sample.
 
 ### Health
 
-**`GET /health`** — Returns GPU status, loaded engines with capabilities, default engine, and voice sample count.
+**`GET /health`**: Returns GPU status, loaded engines with capabilities, default engine, and voice sample count.
 
 ---
 
@@ -428,8 +428,8 @@ tts:
 ```
 
 The `TTSClient` provides two methods:
-- `generate_audio(text, voice, speed, language)` — returns MP3 bytes.
-- `stream_audio(text, voice, speed, language)` — async generator yielding PCM chunks.
+- `generate_audio(text, voice, speed, language)`: returns MP3 bytes.
+- `stream_audio(text, voice, speed, language)`: async generator yielding PCM chunks.
 
 Two notification channels in Cognitive Companion use this service:
 - **`ha_speaker_tts`**: Generates MP3, uploads to MinIO, plays on HA media player via `media_player.play_media`.

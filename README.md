@@ -99,7 +99,7 @@ pytest tests/ -v
 
 ## API
 
-### `POST /v1/audio/speech` — Generate speech (OpenAI-compatible)
+### `POST /v1/audio/speech`: Generate speech (OpenAI-compatible)
 
 ```bash
 curl -X POST http://localhost:8600/v1/audio/speech \
@@ -110,11 +110,11 @@ curl -X POST http://localhost:8600/v1/audio/speech \
 
 Streaming: set `"stream": true` to receive raw PCM int16 chunks.
 
-### `GET /v1/models` — List loaded engines
-### `GET /api/v1/voices` — List all voices (built-in + custom samples)
-### `POST /api/v1/voices/upload` — Upload voice reference sample for cloning
-### `DELETE /api/v1/voices/{voice_id}` — Delete a voice sample
-### `GET /health` — GPU status, loaded engines, voice sample count
+### `GET /v1/models`: List loaded engines
+### `GET /api/v1/voices`: List all voices (built-in + custom samples)
+### `POST /api/v1/voices/upload`: Upload voice reference sample for cloning
+### `DELETE /api/v1/voices/{voice_id}`: Delete a voice sample
+### `GET /health`: GPU status, loaded engines, voice sample count
 
 ---
 
