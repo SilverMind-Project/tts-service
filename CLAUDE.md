@@ -30,6 +30,10 @@ pytest tests/ -v
 
 # Lint
 ruff check app/ tests/
+
+# Once per clone: versioned git hooks (.githooks/), which refuse markdown with an em-dash
+make install-hooks
+make check-md
 ```
 
 ---
