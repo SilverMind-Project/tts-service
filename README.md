@@ -30,16 +30,17 @@ flowchart TB
         Fish["Fish Speech<br/>(80+ langs,<br/>voice cloning)"]
         Seamless["SeamlessM4T<br/>(36 langs, Meta)"]
         Edge["Edge TTS<br/>(remote, no GPU)"]
+        Kokoro["Kokoro<br/>(82M, English,<br/>runs on CPU)"]
     end
 
-    Registry --> Svara & Parler & Fish & Seamless & Edge
+    Registry --> Svara & Parler & Fish & Seamless & Edge & Kokoro
 
     CC -->|"OpenAI API"| Router
     HA -->|"Wyoming"| Wyoming["wyoming-openai<br/>(sidecar, :10300)"]
     Wyoming -->|"OpenAI API"| Router
 ```
 
-Five engines implement the same `TTSEngine` ABC. Engines are loaded at startup based on config. The `model` field in the API request selects which engine to use.
+Six engines implement the same `TTSEngine` ABC. Engines are loaded at startup based on config. The `model` field in the API request selects which engine to use.
 
 ---
 
@@ -52,8 +53,9 @@ Five engines implement the same `TTSEngine` ABC. Engines are loaded at startup b
 | **fish_speech** | fishaudio/s2-pro | 80+ languages | Chunked | Yes | ~8-12 GB | Research |
 | **seamless** | facebook/seamless-m4t-v2-large | 36 languages | No | No | ~6-8 GB | CC-BY-NC-4.0 |
 | **edge_tts** | travisvn/openai-edge-tts | 40+ languages | Proxied | No | None | MIT |
+| **kokoro** | hexgrad/Kokoro-82M | American and British English | Chunked | No | None (CPU) | Apache-2.0 |
 
-Svara is the recommended engine for Indian English and Tamil. Edge TTS is best when no GPU is available.
+Svara is the recommended engine for Indian English and Tamil. Kokoro gives American or British English and runs on CPU; it's opt-in (`.[kokoro]`). Edge TTS is best when no GPU is available.
 
 ---
 
@@ -166,4 +168,4 @@ tts:
 
 ## License
 
-AGPL-3.0-or-later. Individual engines carry their own licenses: Svara and Parler are Apache-2.0, Fish Speech requires a license for commercial use, SeamlessM4T is CC-BY-NC-4.0, Edge TTS is MIT.
+AGPL-3.0-or-later. Individual engines carry their own licenses: Svara and Parler are Apache-2.0, Fish Speech requires a license for commercial use, SeamlessM4T is CC-BY-NC-4.0, Edge TTS is MIT, Kokoro is Apache-2.0.

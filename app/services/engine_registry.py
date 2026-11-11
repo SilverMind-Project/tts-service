@@ -16,6 +16,7 @@ _ENGINE_CLASSES: dict[str, str] = {
     "fish_speech": "app.services.engine_fish_speech:FishSpeechEngine",
     "seamless": "app.services.engine_seamless:SeamlessEngine",
     "edge_tts": "app.services.engine_edge_tts:EdgeTTSEngine",
+    "kokoro": "app.services.engine_kokoro:KokoroEngine",
 }
 
 

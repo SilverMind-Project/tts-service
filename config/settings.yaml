@@ -8,7 +8,7 @@ server:
 
 # ── Engines ──────────────────────────────────────────────────────────────
 # List of engines to load at startup. Order matters for fallback.
-# Supported: svara, parler, fish_speech, seamless, edge_tts
+# Supported: svara, parler, fish_speech, seamless, edge_tts, kokoro
 engines:
   enabled:
     - svara
@@ -51,6 +51,11 @@ engines:
     base_url: "${EDGE_TTS_URL:http://192.168.1.31:6060/v1}"
     default_voice: "en-IN-NeerjaExpressiveNeural"
     default_speed: 0.85
+
+  kokoro:
+    repo_id: "hexgrad/Kokoro-82M"
+    device: "cpu"                # ~1 s per short phrase on CPU. On the GB10 it could not get a CUDA context while other services held the GPU
+    default_voice: "af_heart"    # used when a request asks for voice "default"
 
 # ── Storage ──────────────────────────────────────────────────────────────
 storage:

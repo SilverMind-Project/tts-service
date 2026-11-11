@@ -12,7 +12,7 @@ The TTS Service is a self-hosted, GPU-accelerated text-to-speech microservice fo
 
 Three things make this codebase non-trivial:
 
-1. **Multi-engine plugin architecture.** Five engines (Svara, Parler, Fish Speech, SeamlessM4T, Edge TTS) each implement the same `TTSEngine` ABC. Adding a new engine is a single file with zero changes to the API layer.
+1. **Multi-engine plugin architecture.** Six engines (Svara, Parler, Fish Speech, SeamlessM4T, Edge TTS, Kokoro) each implement the same `TTSEngine` ABC. Adding a new engine is a single file with zero changes to the API layer.
 2. **Token-level streaming.** The Svara engine intercepts tokens during `model.generate()` via a custom streamer, accumulates SNAC frames into configurable batches, and decodes them incrementally. This gives time-to-first-audio of ~210ms instead of waiting for full generation.
 3. **Voice cloning infrastructure.** The `VoiceStore` manages reference audio samples on disk with a structured directory layout. Fish Speech encodes these samples through its VQGAN encoder to produce voice-cloned speech.
 
@@ -55,6 +55,7 @@ tts-service/
 │       ├── engine_fish_speech.py     Fish Speech S2-Pro (80+ langs, voice cloning)
 │       ├── engine_seamless.py        SeamlessM4T v2 (36 langs, Meta)
 │       ├── engine_edge_tts.py        OpenAI Edge TTS pass-through (remote, no GPU)
+│       ├── engine_kokoro.py          Kokoro-82M (English, American and British, CPU)
 │       ├── audio_converter.py        WAV, MP3, Opus, FLAC, PCM conversion
 │       └── voice_store.py            Voice cloning sample management on disk
 ├── config/
@@ -64,6 +65,7 @@ tts-service/
 ├── tests/
 │   ├── conftest.py                   MockEngine, app_client fixture, audio_samples
 │   ├── test_engine_base.py           ABC default streaming behavior
+│   ├── test_engine_kokoro.py         Kokoro engine against a fake kokoro module
 │   ├── test_engine_registry.py       Registry load, get, unload
 │   ├── test_audio_converter.py       Format conversion, round-trip accuracy
 │   ├── test_openai_speech.py         Full API integration tests
@@ -288,6 +290,28 @@ When the `voice` parameter matches a preset, the stored description is used. Oth
 **Architecture.** A pass-through engine: no local model loading. Proxies HTTP requests to a remote `openai-edge-tts` service. The remote service uses Microsoft Edge TTS voices. Uses `httpx.AsyncClient` for both batch and streaming requests.
 
 **Voices.** 14 Indian-language Edge voices are pre-listed: English (IN), Tamil, Hindi, Telugu, Kannada, Malayalam, plus US and UK English fallbacks. The `default_voice` and `default_speed` are configurable.
+
+### 6.6 Kokoro (`engine_kokoro.py`)
+
+| Attribute | Value |
+| --- | --- |
+| Model | hexgrad/Kokoro-82M (82M params) |
+| Languages | English: American (`en-us`) and British (`en-gb`) pronunciation |
+| Streaming | Chunked fallback only |
+| Voice control | Kokoro voice names, such as `af_heart` (American female, graded A by the model's authors) or `bm_george` (British male) |
+| Sample rate | 24000 Hz |
+| Device | CPU by default: about 1 s for a short phrase on the GB10 |
+| License | Apache-2.0 |
+
+**Architecture.** Uses the `kokoro` package. One `KModel` is shared by two `KPipeline`s, one per accent. Each pipeline turns text into phonemes with misaki and spaCy, then the model speaks them. A lock runs one synthesis at a time, because the model and spaCy pipeline are shared.
+
+**Voices and language.** `default` maps to `engines.kokoro.default_voice` (`af_heart`). Any other unknown voice, or a language other than `en`, `en-us` or `en-gb`, raises `ValueError`, so a caller never gets a different voice from the one it asked for. With `en` or no language, the voice's own accent is used: `a*` voices American, `b*` voices British. `en-us` or `en-gb` overrides it.
+
+**Speed.** Passed to Kokoro, which changes pace without changing pitch.
+
+**Words outside the dictionary.** misaki falls back to espeak-ng (bundled by `espeakng-loader`) for words it doesn't know. Without the fallback those words would be silently left out, so `load()` fails if it doesn't start.
+
+**Installation.** Opt-in, not in `[all]`: `pip install ".[kokoro]"`. The extra pins the spaCy `en_core_web_sm` model, which misaki would otherwise download on first load. Install it into the image and add `kokoro` to `engines.enabled` to use it. On the GB10, Kokoro could not get a CUDA context while other services held the GPU, hence the CPU default.
 
 ---
 

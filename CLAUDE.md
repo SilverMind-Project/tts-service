@@ -6,7 +6,7 @@ Quick reference for Claude Code agents in `tts-service/`. The full reference is 
 
 ## What this is
 
-Self-hosted text-to-speech microservice for the Cognitive Companion platform. FastAPI backend, multi-engine plugin architecture (5 engines), OpenAI-compatible API (`/v1/audio/speech`). GPU-accelerated with token-level streaming on the Svara engine. Integrates with Home Assistant via a Wyoming protocol sidecar.
+Self-hosted text-to-speech microservice for the Cognitive Companion platform. FastAPI backend, multi-engine plugin architecture (6 engines), OpenAI-compatible API (`/v1/audio/speech`). GPU-accelerated with token-level streaming on the Svara engine. Integrates with Home Assistant via a Wyoming protocol sidecar.
 
 ---
 
@@ -68,7 +68,7 @@ class YourEngine(TTSEngine):
 
 ---
 
-## Engines (5)
+## Engines (6)
 
 | Name | File | Model | Key traits |
 | --- | --- | --- | --- |
@@ -77,6 +77,7 @@ class YourEngine(TTSEngine):
 | `fish_speech` | `engine_fish_speech.py` | fishaudio/s2-pro | Dual-AR, 80+ languages, voice cloning via VQGAN encoder |
 | `seamless` | `engine_seamless.py` | facebook/seamless-m4t-v2-large | 36 languages, CC-BY-NC-4.0 license |
 | `edge_tts` | `engine_edge_tts.py` | travisvn/openai-edge-tts | Pass-through to remote, Microsoft Edge voices, no GPU needed |
+| `kokoro` | `engine_kokoro.py` | hexgrad/Kokoro-82M | 82M params, American and British English, CPU, opt-in extra; unknown voices raise |
 
 ---
 
@@ -98,7 +99,7 @@ class YourEngine(TTSEngine):
 1. Tests pass: `pytest tests/ -v`. Tests use `MockEngine` (440 Hz sine wave) via `app_client` fixture with `ASGITransport`.
 2. New engines: success path, missing-dependency path, and at least one edge case test.
 3. Strongly-typed public surfaces. `@dataclass` for results, Pydantic for HTTP wire models.
-4. Lazy imports for optional engine dependencies (fish-speech, parler-tts, snac).
+4. Lazy imports for optional engine dependencies (fish-speech, parler-tts, snac, kokoro).
 5. No `print()`. Use stdlib `logging.getLogger(__name__)`.
 
 ---

@@ -35,6 +35,13 @@ fish_speech = [
 seamless = [
     "torchaudio>=2.2",
 ]
+# Kokoro-82M (English, American and British voices, runs on CPU)
+# Opt-in, like Fish Speech: enable it in config and add it to the image when wanted.
+kokoro = [
+    "kokoro>=0.9.4",
+    # misaki downloads this spaCy model on first load if it is missing; pin it instead
+    "en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
+]
 # OpenAI Edge TTS (pass-through to remote openai-edge-tts service)
 edge_tts = [
     "httpx>=0.27",
